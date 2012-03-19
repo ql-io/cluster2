@@ -1,0 +1,19 @@
+{
+    "author": " <subbu@ebaysf.com>",
+    "name": "cluster2",
+    "version": "0.1.0",
+    "repository": {
+        "url": ""
+    },
+    "engines": {
+        "node": ">= 0.6"
+    },
+    "dependencies": {
+        "underscore": "",
+        "express": "",
+        "ejs": "",
+        "npm": ""
+    },
+    "devDependencies": {},
+    "optionalDependencies": {}
+}
