@@ -1,5 +1,5 @@
-* Basic cluster
-* St art from js
+* <del>Basic cluster</del>
+* <del>St art from js</del>
 * Start from command line args
 * Mon
 * ECV
