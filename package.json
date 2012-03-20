@@ -1,13 +1,15 @@
 {
-    "author": " <subbu@ebaysf.com>",
+    "author": "ql.io",
     "name": "cluster2",
     "version": "0.1.0",
     "repository": {
-        "url": ""
+        "type": "git",
+        "url": "https://github.com/ql-io/ql.io"
     },
     "engines": {
-        "node": ">= 0.6"
+        "node": ">= 0.6.0"
     },
+    "main": "lib/index.js",
     "dependencies": {
         "underscore": "",
         "express": "",
