@@ -1,8 +1,9 @@
 * <del>Basic cluster</del>
 * <del>St art from js</del>
-* Start from command line args
+* <del>Start from command line args</del>
 * Mon
-* ECV
+* <del>ECV</del>
+* Send counters in bulk
 * Graceful shutdown - stop connection listening
 * Traffic in and out - continue connection listening but update ecv
 * Process restart
