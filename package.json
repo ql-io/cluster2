@@ -16,6 +16,11 @@
         "ejs": "",
         "npm": ""
     },
-    "devDependencies": {},
+    "devDependencies": {
+        "nodeunit": ""
+    },
+    "scripts": {
+        "test": "nodeunit test"
+    },
     "optionalDependencies": {}
 }
