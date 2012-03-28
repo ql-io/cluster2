@@ -2,6 +2,7 @@
 * <del>St art from js</del>
 * <del>Start from command line args</del>
 * Mon
+* Write start/shutdown/stop to log
 * <del>ECV</del>
 * Send counters in bulk
 * Graceful shutdown - stop connection listening
