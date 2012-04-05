@@ -2,6 +2,8 @@
 * <del>St art from js</del>
 * <del>Start from command line args</del>
 * Mon
+* Check for open port and and exit when busy with an error exit code
+* Skip logging when disk is low
 * Write start/shutdown/stop to log
 * <del>ECV</del>
 * Send counters in bulk
