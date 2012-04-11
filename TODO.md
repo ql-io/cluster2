@@ -1,6 +1,8 @@
 * <del>Basic cluster</del>
 * <del>St art from js</del>
 * <del>Start from command line args</del>
+* <del>Add `since` header to report uptime</del>
+* <del>`app.close()` during SIGTERM</del>
 * Mon
 * Check for open port and and exit when busy with an error exit code
 * Skip logging when disk is low
