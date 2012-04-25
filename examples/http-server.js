@@ -20,11 +20,24 @@ var Cluster = require('../lib/index.js'),
 //
 // A TCP server cluster
 
+var serving = true;
 var server = http.createServer(function (req, res) {
+    if(serving) {
+        res.writeHead(200);
+    }
+    else {
+        // Be nice and send a connection: close as otherwise the client may pump more requests
+        // on the same connection
+        res.writeHead(200, {
+            'connection': 'close'
+        });
+    }
     res.writeHead(200);
     res.end('hello');
 });
-
+server.on('close', function() {
+    serving = false;
+})
 var c = new Cluster({
 //    timeout: 300 * 1000,
     port: 3000,
