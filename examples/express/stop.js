@@ -13,16 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-var cluster2 = require('../../lib/index.js'),
-    express = require('express');
-
-//
-// An express server cluster
-
-var app = express.createServer();
-app.get('/', function(req, res){
-    res.send('hello');
-});
-
-cluster2.stop();
+var Cluster = require('../../lib/index.js');
+var c = new Cluster();
+c.stop();

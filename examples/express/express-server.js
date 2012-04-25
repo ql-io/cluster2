@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-var cluster2 = require('../../lib/index.js'),
+var Cluster = require('../../lib/index.js'),
     express = require('express');
 
 //
@@ -25,7 +25,7 @@ app.get('/', function(req, res){
     res.send('hello');
 });
 
-cluster2.listen({
+var c = new Cluster({
     port: 3000,
     cluster: true,
     ecv: {
@@ -34,6 +34,15 @@ cluster2.listen({
             return true;
         }
     }
-}, function(cb) {
+});
+
+c.on('died', function(pid) {
+    console.log('Worker ' + pid + ' died');
+});
+c.on('forked', function(pid) {
+    console.log('Worker ' + pid + ' forked');
+});
+
+c.listen(function(cb) {
     cb(app);
 });

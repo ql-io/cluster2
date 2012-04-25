@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-var cluster2 = require('../lib/index.js'),
+var Cluster = require('../lib/index.js'),
     net = require('net');
 
 //
@@ -29,9 +29,19 @@ var server = net.createServer(function (c) {
     c.pipe(c);
 });
 
-cluster2.listen({
+var c = new Cluster({
     port: 3000,
     cluster: true
-}, function(cb) {
+});
+
+c.on('died', function(pid) {
+    console.log('Worker ' + pid + ' died');
+});
+c.on('forked', function(pid) {
+    console.log('Worker ' + pid + ' forked');
+});
+
+c.listen(function(cb) {
+    // Once the app is created, pass it back
     cb(server);
 });

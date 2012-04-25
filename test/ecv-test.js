@@ -16,7 +16,7 @@
 
 'use strict'
 
-var cluster2 = require('./../lib/index.js'),
+var Cluster = require('./../lib/index.js'),
     http = require('http'),
     testCase = require('nodeunit').testCase,
     express = require('express');
@@ -30,56 +30,59 @@ module.exports = testCase({
             res.send('hello');
         });
 
-        cluster2.listen({
+        var cluster = new Cluster({
             port: 3000,
             cluster: false,
             ecv: {
                 monitor: '/',
-                validator: function() {
+                validator: function () {
                     return true;
                 }
             }
-        }, function(cb) {
-            cb(app);
-        }, function(app) {
-            setTimeout(function() {
-                                // Regex to match the expected response. Tricky part is the IPv4 match.
-            // Very naive exp to check numbers 0 - 255.
-            // (25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]? ) -> ( numbers 250 to 255 | numbers 200 to 249 | numbers 0 to 199)
-            // Same expression for each of the 4 IPs
-            var re = new RegExp('status=AVAILABLE&ServeTraffic=true&ip=(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)&hostname='+hostname+'&port=3000&time=.*');
-            try {
-                var options = {
-                    host: 'localhost',
-                    port: 3000,
-                    path: '/ecv',
-                    method: 'GET'
-                };
-                var request = http.request(options, function(res) {
-                    var response = '';
-                    res.on('data', function(chunk) {
-                        response += chunk;
-                    });
-                    res.on('end', function () {
-                        var result = re.exec(response);
-                        test.ok(result !== null,
-                            'expected:status=AVAILABLE&ServeTraffic=true&ip=<Network IP>&hostname=' + hostname + '&port=3000&time=.*');
-                        test.done();
-                        app.close();
-                    });
-                });
-                request.on('error', function(err) {
-                    console.log(err.stack || err);
-                    console.log('Error with uri - ' + request.uri + ' - ' + err.message);
-                });
-                request.end();
-            }
-            catch(e) {
-                console.log(e);
-                test.ok(false);
-            }
-            }, 200);
         });
+        cluster.listen(function(cb) {
+                cb(app);
+            },
+            function (app) {
+                setTimeout(function () {
+                    // Regex to match the expected response. Tricky part is the IPv4 match.
+                    // Very naive exp to check numbers 0 - 255.
+                    // (25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]? ) -> ( numbers 250 to 255 | numbers 200 to 249 | numbers 0 to 199)
+                    // Same expression for each of the 4 IPs
+                    var re = new RegExp('status=AVAILABLE&ServeTraffic=true&ip=(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)&hostname=' + hostname + '&port=3000&time=.*');
+                    try {
+                        var options = {
+                            host: 'localhost',
+                            port: 3000,
+                            path: '/ecv',
+                            method: 'GET'
+                        };
+                        var request = http.request(options, function (res) {
+                            var response = '';
+                            res.on('data', function (chunk) {
+                                response += chunk;
+                            });
+                            res.on('end', function () {
+                                var result = re.exec(response);
+                                test.ok(result !== null,
+                                    'expected:status=AVAILABLE&ServeTraffic=true&ip=<Network IP>&hostname=' + hostname + '&port=3000&time=.*');
+                                app.close();
+                                test.done();
+                            });
+                        });
+                        request.on('error', function (err) {
+                            console.log(err.stack || err);
+                            console.log('Error with uri - ' + request.uri + ' - ' + err.message);
+                        });
+                        request.end();
+                    }
+                    catch(e) {
+                        console.log(e);
+                        test.ok(false);
+                    }
+                }, 200);
+            }
+        );
     }
 });
 

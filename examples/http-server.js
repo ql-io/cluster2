@@ -14,22 +14,40 @@
  * limitations under the License.
  */
 
-var cluster2 = require('../lib/index.js'),
+var Cluster = require('../lib/index.js'),
     http = require('http');
 
 //
 // A TCP server cluster
 
 var server = http.createServer(function (req, res) {
-    console.log('server connected');
     res.writeHead(200);
     res.end('hello');
 });
 
-cluster2.listen({
+var c = new Cluster({
+//    timeout: 300 * 1000,
     port: 3000,
     cluster: true,
     ecv: false
-}, function(cb) {
+});
+c.on('died', function(pid) {
+    console.log('Worker ' + pid + ' died');
+});
+c.on('forked', function(pid) {
+    console.log('Worker ' + pid + ' forked');
+});
+c.on('SIGKILL', function() {
+    console.log('Got SIGKILL');
+});
+c.on('SIGTERM', function(event) {
+    console.log('Got SIGTERM - shutting down');
+    console.log(event);
+});
+c.on('SIGINT', function() {
+    console.log('Got SIGINT');
+});
+
+c.listen(function(cb) {
     cb(server);
 });
