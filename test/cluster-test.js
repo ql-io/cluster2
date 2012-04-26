@@ -104,37 +104,82 @@ module.exports = {
         start(emitter);
     },
 
-    'start and then shutdown': function(test) {
-            var emitter = new EventEmitter();
+    'start and then shutdown': function (test) {
+        var emitter = new EventEmitter();
 
-            emitter.on('starting', function() {
-                waitForStart(emitter, test, 0, 100);
+        emitter.on('starting', function () {
+            waitForStart(emitter, test, 0, 100);
+        });
+
+        emitter.on('started', function () {
+            shutdown(emitter);
+        });
+
+        emitter.on('start failure', function (error) {
+            log('Failed to start');
+            log(error.stack || error);
+            test.ok(false, 'failed to start')
+        });
+
+        emitter.on('stopping', function () {
+            waitForStop.apply(null, [emitter, test, 0, 100])
+        });
+
+        emitter.on('stopped', function () {
+            log('Stopped');
+            // Assert that there are 0 pids.
+            fs.readdir('./pids', function (err, paths) {
+                test.equal(paths.length, 0);
             });
+            test.done();
+        });
+        start(emitter);
+    },
 
-            emitter.on('started', function () {
-                shutdown(emitter);
-            });
+    'start, send traffic, get responses, and then shutdown': function (test) {
+        var emitter = new EventEmitter();
 
-            emitter.on('start failure', function (error) {
-                log('Failed to start');
-                log(error.stack || error);
-                test.ok(false, 'failed to start')
-            });
+        emitter.on('starting', function () {
+            waitForStart(emitter, test, 0, 100);
+        });
 
-            emitter.on('stopping', function() {
-                waitForStop.apply(null, [emitter, test, 0, 100])
-            });
-
-            emitter.on('stopped', function() {
-                log('Stopped');
-                // Assert that there are 0 pids.
-                fs.readdir('./pids', function(err, paths) {
-                    test.equal(paths.length, 0);
+        emitter.on('started', function () {
+            var respCount = 0;
+            for(var i = 0; i < 10; i++) {
+                request('http://localhost:3000', function (error, response, body) {
+                    if(error) {
+                        test.ok(false, 'got error from server')
+                    }
+                    else {
+                        respCount++;
+                        if(respCount === 10) {
+                            return shutdown(emitter);
+                        }
+                    }
                 });
-                test.done();
+            }
+        });
+
+        emitter.on('start failure', function (error) {
+            log('Failed to start');
+            log(error.stack || error);
+            test.ok(false, 'failed to start')
+        });
+
+        emitter.on('stopping', function () {
+            waitForStop.apply(null, [emitter, test, 0, 100])
+        });
+
+        emitter.on('stopped', function () {
+            log('Stopped');
+            // Assert that there are 0 pids.
+            fs.readdir('./pids', function (err, paths) {
+                test.equal(paths.length, 0);
             });
-            start(emitter);
-        },
+            test.done();
+        });
+        start(emitter);
+    }
 }
 
 // Start the cluster
