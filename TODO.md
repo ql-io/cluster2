@@ -5,7 +5,7 @@
 * <del>`app.close()` during SIGTERM</del>
 * <del>ECV</del>
 * <del>Skip logging when disk is low</del>
-* Mon
+* Mon test
 * Check for open port and and exit when busy with an error exit code
 * Write start/shutdown/stop to log
 * Send counters in bulk

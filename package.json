@@ -13,7 +13,6 @@
     "dependencies": {
         "underscore": "",
         "express": "2.5.9",
-        "shelljs": "",
         "ejs": "",
         "npm": ""
     },
