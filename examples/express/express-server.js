@@ -20,10 +20,18 @@ var Cluster = require('../../lib/index.js'),
 //
 // An express server cluster
 
+var serving = true;
 var app = express.createServer();
-app.get('/', function(req, res){
+app.get('/', function(req, res) {
     res.send('hello');
+    if(!serving)  {
+        req.connection.end();
+    }
 });
+
+app.on('close', function() {
+    serving = false;
+})
 
 var c = new Cluster({
     port: 3000,
