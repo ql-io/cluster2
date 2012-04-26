@@ -22,7 +22,7 @@ var childProcess = require('child_process'),
     os = require('os'),
     EventEmitter = require('events').EventEmitter;
 
-var debug = true;
+var debug = false;
 function log() {
     if(debug) {
         console.log.apply(null, arguments);
