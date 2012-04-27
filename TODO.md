@@ -5,7 +5,11 @@
 * <del>`app.close()` during SIGTERM</del>
 * <del>ECV</del>
 * <del>Skip logging when disk is low</del>
-* Mon test
+* <del>exit story in worker unclear</del>
+* <del>ws connection not working in chrome</del>
+* <del>Mon test</del>
+* ws connection causing workers to live
+* Update paas templates
 * Check for open port and and exit when busy with an error exit code
 * Write start/shutdown/stop to log
 * Send counters in bulk
