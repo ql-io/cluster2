@@ -15,36 +15,72 @@ Built on node's `cluster`, cluster2 provides several several additional capabili
 * Validation hook (for other tools to monitor cluster2 apps)
 * Events for logging cluster activities
 
-```
-// Start a server
-var Cluster = require('cluster2'),
-    express = require('express');
-var app = express.createServer();
-app.get('/', function(req, res) {
-    res.send('hello');
-});
+### Usage
 
-var c = new Cluster({
-    port: 3000,
-});
-c.listen(function(cb) {
-    cb(app);
-});
-```
+#### Getting cluster2
 
-```
-// Stop a server
-var Cluster = require('cluster2');
-var c = new Cluster();
-c.stop();
-````
+    npm install cluster2
 
-```
-// Gracefull shutdown a server
-var Cluster = require('cluster2');
-var c = new Cluster();
-c.shutdown();
-````
+#### Start a TCP Server
+
+    var Cluster = require('cluster2'),
+        net = require('net');
+    var server = net.createServer(function (c) {
+        c.on('end', function () {
+            console.log('server disconnected');
+        });
+        c.write('hello\r\n');
+        c.pipe(c);
+    });
+
+    var c = new Cluster({
+        port: 3000,
+        cluster: true
+    });
+
+#### Start a HTTP Server
+
+    var Cluster = require('cluster2'),
+        http = require('http');
+    var server = http.createServer(function (req, res) {
+        res.writeHead(200);
+        res.end('hello');
+    });
+    var c = new Cluster({
+        port: 3000
+    });
+    c.listen(function(cb) {
+        cb(server);
+    });
+
+#### Start an Express Server
+
+    var Cluster = require('cluster2'),
+        express = require('express');
+    var app = express.createServer();
+    app.get('/', function(req, res) {
+        res.send('hello');
+    });
+
+    var c = new Cluster({
+        port: 3000,
+    });
+    c.listen(function(cb) {
+        cb(app);
+    });
+
+#### Stop a Server
+
+    var Cluster = require('cluster2');
+    var c = new Cluster();
+    c.stop();
+
+#### Gracefully Shutdown a Server
+
+    var Cluster = require('cluster2');
+    var c = new Cluster();
+    c.shutdown();
+
 
 ### Options
 
