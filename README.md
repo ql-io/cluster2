@@ -127,9 +127,9 @@ server must handle `close` events as follows.
         cluster: true
     });
 
-Completion of `shutdown()` does not necessarily mean that all worker processes are dead. The workers
-may take a while to complete processing of current requests and exit. The `shutdown()` flow only
-guarantees that the server takes no new connections.
+Completion of `shutdown()` does not necessarily mean that all worker processes are dead immediately. 
+The workers may take a while to complete processing of current requests and exit. The `shutdown()` 
+flow only guarantees that the server takes no new connections.
 
 ## Cluster2 Events
 
