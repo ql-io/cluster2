@@ -1,2 +1,4 @@
+*.iml
+.travis.yml
 node_modules
 test

@@ -126,7 +126,7 @@ server must handle `close` events as follows.
         cluster: true
     });
 
-## Handling Events
+## Cluster2 Events
 
 Cluster2 is an `EventEmitter` and emits the following events.
 
@@ -138,44 +138,30 @@ Cluster2 is an `EventEmitter` and emits the following events.
 Here is an example that logs these events to the disk.
 
     var Cluster = require('cluster2'),
-        var winston = require('winston'),
         http = require('http');
-
-    var logger = new (winston.Logger)({
-        transports: [
-            new (winston.transports.File)({
-                filename: process.cwd() + '/logs/myapp.log',
-                maxsize: 1024000 * 5,
-                colorize: false,
-                json: true,
-                timestamp: function () {
-                    return new Date();
-                }
-            })
-        ]
-    });
 
     var server = http.createServer(function (req, res) {
         res.writeHead(200);
         res.end('hello');
     });
     var c = new Cluster({
+        cluster: true,
         port: 3000
     });
     c.on('died', function(pid) {
-        winston.log('Worker ' + pid + ' died');
+        console.log('Worker ' + pid + ' died');
     });
     c.on('forked', function(pid) {
-        winston.log('Worker ' + pid + ' forked');
+        console.log('Worker ' + pid + ' forked');
     });
     c.on('SIGKILL', function() {
-        winston.log('Got SIGKILL');
+        console.log('Got SIGKILL');
     });
     c.on('SIGTERM', function(event) {
         console.log('Got SIGTERM - shutting down');
     });
     c.on('SIGINT', function() {
-        winston.log('Got SIGINT');
+        console.log('Got SIGINT');
     });
     c.listen(function(cb) {
         cb(server);
