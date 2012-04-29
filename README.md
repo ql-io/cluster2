@@ -1,4 +1,3 @@
-
 ## What is cluster2
 
 ![Travis status](https://secure.travis-ci.org/ql-io/cluster2.png)
