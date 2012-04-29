@@ -8,16 +8,15 @@
 * <del>exit story in worker unclear</del>
 * <del>ws connection not working in chrome</del>
 * <del>Mon test</del>
+* <del>Update paas templates</del>
+* <del>Graceful shutdown - stop connection listening</del>
+* <del>Drain incoming connections on timeout</del>
+* <del>Drain incoming connections on shutdown</del>
+* <del>Process restart</del>
+* <del>Process recycle</del>
 * ws connection causing workers to live
-* Update paas templates
 * Check for open port and and exit when busy with an error exit code
 * Write start/shutdown/stop to log
 * Send counters in bulk
-* Graceful shutdown - stop connection listening
 * Traffic in and out - continue connection listening but update ecv
-* Process restart
-* Process recycle
-* Drain incoming connections on timeout
-* Drain incoming connections on shutdown
 * Raise heartbeats thru logEmitter https://github.scm.corp.ebay.com/qlio/ql.io/issues/74
-* test-mon need cleanup

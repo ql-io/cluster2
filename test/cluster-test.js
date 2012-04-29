@@ -227,6 +227,70 @@ module.exports = {
         start(emitter);
     },
 
+    'start, check recycle on threshold, shutdown': function (test) {
+        var emitter = new EventEmitter();
+
+        emitter.on('starting', function () {
+            waitForStart(emitter, test, 0, 100);
+        });
+
+        var respCount = 0, errCount = 0;
+        emitter.on('started', function () {
+            var paths = fs.readdirSync('./pids');
+
+            // connThreshold is 10. So, sending 20+ requests without pooling would cause
+            // recycle
+            for(var i = 0; i < 100; i++) {
+                request({
+                    uri: 'http://localhost:3000',
+                    headers: {
+                        'connection': 'close'
+                    }
+                }, function (error, response, body) {
+                    if(error) {
+                        test.ok(false, error.message || 'got error from server')
+                    }
+                    else {
+                        respCount++;
+                    }
+                    if(respCount === 100) {
+                        // Wait for process recycling to complete
+                        setTimeout(function() {
+                            // Before shutting down, check the pids again
+                            var pathsEnd = fs.readdirSync('./pids');
+                            test.ok(pathsEnd.length > paths.length, 'Expected more processes');
+                            shutdown(emitter);
+                        }, 5000);
+                    }
+                });
+            }
+        });
+
+        emitter.on('start failure', function (error) {
+            log('Failed to start');
+            log(error.stack || error);
+            test.ok(false, 'failed to start')
+        });
+
+        emitter.on('stopping', function () {
+            waitForStop.apply(null, [emitter, test, 0, 100])
+        });
+
+        emitter.on('stopped', function () {
+            fs.readdir('./pids', function (err, paths) {
+                test.equal(paths.length, 0);
+            });
+            test.ok(respCount + errCount, 2000);
+            log('Stopped');
+            // Assert that there are 0 pids.
+            fs.readdir('./pids', function (err, paths) {
+                test.equal(paths.length, 0);
+            });
+            test.done();
+        });
+        start(emitter);
+    },
+
     'start, abrupt stop': function (test) {
         var emitter = new EventEmitter();
 
@@ -272,7 +336,6 @@ module.exports = {
         });
         start(emitter);
     }
-
 }
 
 // Start the cluster
@@ -370,10 +433,4 @@ function waitForStop(emitter, test, current, max) {
     }
 }
 
-function checkPids(test, len) {
-    // Assert that there are n+1 pids.
-    fs.readdir('./pids', function (err, paths) {
-        test.equal(paths.length, len);
-    });
-}
 
