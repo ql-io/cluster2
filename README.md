@@ -1,3 +1,4 @@
+
 ## What is cluster2
 
 ![Travis status](https://secure.travis-ci.org/ql-io/cluster2.png)
@@ -92,7 +93,7 @@ Cluster2 takes the following options.
 * `monPort`: Port number for the monitor URL, defaults to `3001`. Go to `http://<localhost>:3001` to
    view application logs (whatever is written to a `/logs` dir), and npm dependencies.
 * `ecv`: A validator to validate the runtime health of the app. If found unhealthy, emits a disable
-   traffic signal at path `/ecv`.
+   traffic signal at path `/ecv`. ECV stands for "extended content verification".
 * `noWorkers`: Defaults to `os.cpus().length`.
 * `timeout`: Idle socket timeout. Automatically ends incoming sockets if found idle for this
    duration. Defaults to `30` seconds.
