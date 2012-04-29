@@ -5,7 +5,8 @@
 
 cluster2 is a node.js (>= 0.6.x) compatible multi-process management module. This module grew out of
 our needs in operationalizing node.js for [ql.io](https://github.com/ql-io/ql.io) at eBay. Built on
-node's `cluster`, cluster2 provides several additional capabilities:
+node's `cluster`, cluster2 adds several safeguards and utility functions for real-world production
+scenarios:
 
 * Scriptable start, shutdown and stop flows
 * Worker monitoring for process deaths
@@ -125,6 +126,10 @@ server must handle `close` events as follows.
         port: 3000,
         cluster: true
     });
+
+Completion of `shutdown()` does not necessarily mean that all worker processes are dead. The workers
+may take a while to complete processing of current requests and exit. The `shutdown` flow only
+guarantees that the server takes no new connections.
 
 ## Cluster2 Events
 
