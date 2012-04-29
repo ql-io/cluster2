@@ -1,5 +1,5 @@
 
-### What is cluster2
+## What is cluster2
 
 ![Travis status](https://secure.travis-ci.org/ql-io/cluster2.png)
 
@@ -15,13 +15,13 @@ Built on node's `cluster`, cluster2 provides several several additional capabili
 * Validation hook (for other tools to monitor cluster2 apps)
 * Events for logging cluster activities
 
-### Usage
+## Usage
 
-#### Getting cluster2
+### Getting cluster2
 
     npm install cluster2
 
-#### Start a TCP Server
+### Start a TCP Server
 
     var Cluster = require('cluster2'),
         net = require('net');
@@ -38,7 +38,7 @@ Built on node's `cluster`, cluster2 provides several several additional capabili
         cluster: true
     });
 
-#### Start a HTTP Server
+### Start a HTTP Server
 
     var Cluster = require('cluster2'),
         http = require('http');
@@ -53,7 +53,7 @@ Built on node's `cluster`, cluster2 provides several several additional capabili
         cb(server);
     });
 
-#### Start an Express Server
+### Start an Express Server
 
     var Cluster = require('cluster2'),
         express = require('express');
@@ -69,23 +69,25 @@ Built on node's `cluster`, cluster2 provides several several additional capabili
         cb(app);
     });
 
-#### Stop a Server
+### Stop a Server
 
     var Cluster = require('cluster2');
     var c = new Cluster();
     c.stop();
 
-#### Gracefully Shutdown a Server
+### Gracefully Shutdown a Server
 
     var Cluster = require('cluster2');
     var c = new Cluster();
     c.shutdown();
 
 
-### Options
+## Options
 
 Cluster2 takes the following options.
 
+* `cluster`: When `true` starts a number of workers. Use `false` to start the server as a single
+   process. Defaults to `true`.
 * `pids`: A directory to write PID files for master and workers.
 * `port`: Port number for the app, defaults to `3000`.
 * `monPort`: Port number for the monitor URL, defaults to `3001`. Go to `http://<localhost>:3001` to
@@ -98,8 +100,3 @@ Cluster2 takes the following options.
 * `connThreshold`: When the number of connections processed exceeds this numbers, recycle the worker
    process. This can help recover from slow leaks in your code or dependent modules.
 
-### API
-
-#### Start
-
-```
