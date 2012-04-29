@@ -14,6 +14,7 @@ production scenarios:
 * Idle timeouts
 * Validation hooks (for other tools to monitor cluster2 apps)
 * Events for logging cluster activities
+* and more coming soon
 
 ## Usage
 
