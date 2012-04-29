@@ -4,8 +4,8 @@
 
 cluster2 is a node.js (>= 0.6.x) compatible multi-process management module. This module grew out of
 our needs in operationalizing node.js for [ql.io](https://github.com/ql-io/ql.io) at eBay. Built on
-node's `cluster`, cluster2 adds several safeguards and utility functions for real-world production
-scenarios:
+node's `cluster`, cluster2 adds several safeguards and utility functions to help support real-world
+production scenarios:
 
 * Scriptable start, shutdown and stop flows
 * Worker monitoring for process deaths
