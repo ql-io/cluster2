@@ -4,8 +4,8 @@
 ![Travis status](https://secure.travis-ci.org/ql-io/cluster2.png)
 
 cluster2 is a node.js (>= 0.6.x) compatible multi-process management module. This module grew out of
-our experience in operationalizing node.js for [ql.io](https://github.com/ql-io/ql.io) at eBay.
-Built on node's `cluster`, cluster2 provides several several additional capabilities:
+our needs in operationalizing node.js for [ql.io](https://github.com/ql-io/ql.io) at eBay. Built on
+node's `cluster`, cluster2 provides several several additional capabilities:
 
 * Scriptable start, shutdown and stop
 * Worker monitoring for process deaths
@@ -99,4 +99,85 @@ Cluster2 takes the following options.
    duration. Defaults to `30` seconds.
 * `connThreshold`: When the number of connections processed exceeds this numbers, recycle the worker
    process. This can help recover from slow leaks in your code or dependent modules.
+
+## Graceful Shutdown
+
+The purpose of `shutdown()` is to let the server reject taking new connections, handle all pending
+requests and end the connecton so that no request dropped. In order to handling `shutdown()`, the
+server must handle `close` events as follows.
+
+    var serving = true;
+    var server = http.createServer(function (req, res) {
+        if(!serving) {
+            // Be nice and send a connection: close as otherwise the client may pump more requests
+            // on the same connection
+            res.writeHead(200, {
+                'connection': 'close'
+            });
+        }
+        res.writeHead(200);
+        res.end('hello');
+    });
+    server.on('close', function() {
+        serving = false;
+    })
+    var c = new Cluster({
+        port: 3000,
+        cluster: true
+    });
+
+## Handling Events
+
+Cluster2 is an `EventEmitter` and emits the following events.
+
+* `died`: Emitted when a worker dies. This event is also emitted during normal `shutdown()` or
+  `stop()`.
+* `forked`: Emitted when a new worker is forked.
+* `<signal>`: Emitted when a worker receives a signal (such as `SIGKILL`, `SIGTERM` or `SIGINT`).
+
+Here is an example that logs these events to the disk.
+
+    var Cluster = require('cluster2'),
+        var winston = require('winston'),
+        http = require('http');
+
+    var logger = new (winston.Logger)({
+        transports: [
+            new (winston.transports.File)({
+                filename: process.cwd() + '/logs/myapp.log',
+                maxsize: 1024000 * 5,
+                colorize: false,
+                json: true,
+                timestamp: function () {
+                    return new Date();
+                }
+            })
+        ]
+    });
+
+    var server = http.createServer(function (req, res) {
+        res.writeHead(200);
+        res.end('hello');
+    });
+    var c = new Cluster({
+        port: 3000
+    });
+    c.on('died', function(pid) {
+        winston.log('Worker ' + pid + ' died');
+    });
+    c.on('forked', function(pid) {
+        winston.log('Worker ' + pid + ' forked');
+    });
+    c.on('SIGKILL', function() {
+        winston.log('Got SIGKILL');
+    });
+    c.on('SIGTERM', function(event) {
+        console.log('Got SIGTERM - shutting down');
+    });
+    c.on('SIGINT', function() {
+        winston.log('Got SIGINT');
+    });
+    c.listen(function(cb) {
+        cb(server);
+    });
 
