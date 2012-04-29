@@ -1,4 +1,3 @@
-
 ## What is cluster2
 
 ![Travis status](https://secure.travis-ci.org/ql-io/cluster2.png)
@@ -128,7 +127,7 @@ server must handle `close` events as follows.
     });
 
 Completion of `shutdown()` does not necessarily mean that all worker processes are dead. The workers
-may take a while to complete processing of current requests and exit. The `shutdown` flow only
+may take a while to complete processing of current requests and exit. The `shutdown()` flow only
 guarantees that the server takes no new connections.
 
 ## Cluster2 Events
