@@ -16,6 +16,7 @@ Built on node's `cluster`, cluster2 provides several several additional capabili
 * Events for logging cluster activities
 
 ```
+// Start a server
 var Cluster = require('cluster2'),
     express = require('express');
 var app = express.createServer();
@@ -30,6 +31,20 @@ c.listen(function(cb) {
     cb(app);
 });
 ```
+
+```
+// Stop a server
+var Cluster = require('cluster2');
+var c = new Cluster();
+c.stop();
+````
+
+```
+// Gracefull shutdown a server
+var Cluster = require('cluster2');
+var c = new Cluster();
+c.shutdown();
+````
 
 ### Options
 
