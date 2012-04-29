@@ -36,7 +36,6 @@ server.on('close', function() {
     serving = false;
 })
 var c = new Cluster({
-//    timeout: 300 * 1000,
     port: 3000,
     cluster: true,
     ecv: false
