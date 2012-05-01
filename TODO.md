@@ -19,4 +19,4 @@
 * Write start/shutdown/stop to log
 * Send counters in bulk
 * Traffic in and out - continue connection listening but update ecv
-* Raise heartbeats thru logEmitter https://github.scm.corp.ebay.com/qlio/ql.io/issues/74
+* Raise heartbeats thru logEmitter 
