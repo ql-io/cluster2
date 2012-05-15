@@ -36,6 +36,7 @@ app.on('close', function() {
 var c = new Cluster({
     port: 3000,
     cluster: true,
+    timeout: 500,
     ecv: {
         monitor: '/',
         validator: function() {
