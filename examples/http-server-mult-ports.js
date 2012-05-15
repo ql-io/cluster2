@@ -18,7 +18,7 @@ var Cluster = require('../lib/index.js'),
     http = require('http');
 
 //
-// A HTTP server cluster
+// A HTTP server cluster listening on multiple ports.
 
 var serving = true;
 var server = http.createServer(function (req, res) {
@@ -36,7 +36,7 @@ server.on('close', function() {
     serving = false;
 })
 var c = new Cluster({
-    port: 3000,
+    port: [3000, 3003],
     cluster: true,
     ecv: false
 });
