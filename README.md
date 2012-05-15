@@ -14,6 +14,7 @@ production scenarios:
 * Idle timeouts
 * Validation hooks (for other tools to monitor cluster2 apps)
 * Events for logging cluster activities
+* Exit with error code when the port is busy to fail start scripts
 * and more coming soon
 
 ## Usage
@@ -127,15 +128,9 @@ server must handle `close` events as follows.
         cluster: true
     });
 
-<<<<<<< HEAD
-Completion of `shutdown()` does not necessarily mean that all worker processes are dead immediately. The workers
-may take a while to complete processing of current requests and exit. The `shutdown` flow only
-guarantees that the server takes no new connections.
-=======
 Completion of `shutdown()` does not necessarily mean that all worker processes are dead immediately. 
 The workers may take a while to complete processing of current requests and exit. The `shutdown()` 
 flow only guarantees that the server takes no new connections.
->>>>>>> 70b11cd6a93ae49ff959e60d52a5ba91b012690f
 
 ## Cluster2 Events
 
