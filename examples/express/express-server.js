@@ -38,6 +38,8 @@ var c = new Cluster({
     cluster: true,
     timeout: 500,
     ecv: {
+        path: '/ecv', // Send GET to this for a heartbeat
+        control: true, // send POST to /ecv/disable to disable the heartbeat, and to /ecv/enable to enable again
         monitor: '/',
         validator: function() {
             return true;

@@ -15,6 +15,7 @@ production scenarios:
 * Validation hooks (for other tools to monitor cluster2 apps)
 * Events for logging cluster activities
 * Exit with error code when the port is busy to fail start scripts
+* Disable monitor
 * and more coming soon
 
 ## Usage
@@ -94,8 +95,12 @@ Cluster2 takes the following options.
 * `port`: Port number for the app, defaults to `3000`.
 * `monPort`: Port number for the monitor URL, defaults to `3001`. Go to `http://<localhost>:3001` to
    view application logs (whatever is written to a `/logs` dir), and npm dependencies.
-* `ecv`: A validator to validate the runtime health of the app. If found unhealthy, emits a disable
-   traffic signal at path `/ecv`. ECV stands for "extended content verification".
+* `ecv`: ECV stands for "extended content verification". This is an object with the following
+   additional properties:
+     * `path`: A path to serve a heart beat. See below.
+     * `monitor`: A URI to check before emitting a valid heart beat signal
+     * `control`: When true, allows clients to enable or disable the signal. See below.
+     validator to validate the runtime health of the app. If found unhealthy, emits a disable
 * `noWorkers`: Defaults to `os.cpus().length`.
 * `timeout`: Idle socket timeout. Automatically ends incoming sockets if found idle for this
    duration. Defaults to `30` seconds.
@@ -172,4 +177,59 @@ Here is an example that logs these events to the disk.
     c.listen(function(cb) {
         cb(server);
     });
+
+## Routing Traffic
+
+It is fairly common for proxies or load balancers deployed in front of node clusters, and those
+proxies to use monitor URLs to detect the health of the cluster. Cluster2 includes a monitor
+at `http://<host>:<port>/ecv`. You can change this by setting the `path` property when initializing
+the cluster.
+
+In case you want to take the node cluster out of rotation from the proxy/load balancer, you can do
+so by setting `control` to `true` when initializing the cluster. At runtime, you can send a `POST`
+request to `http://<host>:<port>/ecv/disable`. Once this is done, further requests to
+`http://<host>:<port>/ecv` will get a network error. You can bring the cluster back to rotation by
+sending a `POST` request to `http://<host>:<port>/ecv/enable`.
+
+Since it will be potentially disastrous to let artibrary clients enable/disable traffic, you should
+configure your proxy/load balancer to prevent external traffic to `/ecv*`.
+
+To test this, bring up an example
+
+    node examples/express/express-server.js
+
+and send a `GET` request to `http://localhost:3000/ecv` and notice the response.
+
+    HTTP/1.1 200 OK
+    X-Powered-By: Cluster2
+    content-type: text/plain
+    since: Fri May 18 2012 09:49:32 GMT-0700 (PDT)
+    cache-control: no-cache
+    Connection: keep-alive
+    Transfer-Encoding: chunked
+
+    status=AVAILABLE&ServeTraffic=true&ip=127.0.0.1&hostname=somehost&port=3000&time=Fri May 18 2012 09:49:49 GMT-0700 (PDT)
+
+To flip the monitor into a disabled state, send a `POST` request to `http://localhost:3000/disable`.
+
+    HTTP/1.1 204 No Content
+    X-Powered-By: Cluster2
+    since: Fri May 18 2012 09:54:25 GMT-0700 (PDT)
+    cache-control: no-cache
+    Connection: close
+
+Subsequent `GET` requests to `http://localhost:3000/ecv` will return a response similar to the one
+below.
+
+    HTTP/1.1 400 Bad Request
+    X-Powered-By: Cluster2
+    content-type: text/plain
+    since: Fri May 18 2012 09:54:25 GMT-0700 (PDT)
+    cache-control: no-cache
+    Connection: close
+    Transfer-Encoding: chunked
+
+    status=DISABLED&ServeTraffic=false&ip=127.0.0.1&hostname=somehost&port=3000&time=Fri May 18 2012 09:55:17 GMT-0700 (PDT)
+
+To flip the monitor back into an enabled state, send a `POST` request to `http://localhost:3000/enable`.
 

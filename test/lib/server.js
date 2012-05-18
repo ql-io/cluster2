@@ -35,7 +35,9 @@ var c = new Cluster({
     cluster: true,
     noWorkers: 2,
     connThreshold: 10,
-    ecv: true
+    ecv: {
+        control: true
+    }
 });
 c.on('died', function(pid) {
     console.log('Worker ' + pid + ' died');

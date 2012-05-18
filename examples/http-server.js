@@ -37,8 +37,7 @@ server.on('close', function() {
 })
 var c = new Cluster({
     port: 3000,
-    cluster: true,
-    ecv: false
+    cluster: true
 });
 c.on('died', function(pid) {
     console.log('Worker ' + pid + ' died');

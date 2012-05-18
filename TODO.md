@@ -18,5 +18,5 @@
 * <del>Check for open port and and exit when busy with an error exit code</del>
 * Write start/shutdown/stop to log
 * Send counters in bulk
-* Traffic in and out - continue connection listening but update ecv
+* <del>Traffic in and out - continue connection listening but update ecv</del>
 * Raise heartbeats thru logEmitter 

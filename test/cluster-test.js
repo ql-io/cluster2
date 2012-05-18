@@ -335,6 +335,74 @@ module.exports = {
             test.done();
         });
         start(emitter);
+    },
+
+    'start, disable, enable and stop': function(test) {
+        var emitter = new EventEmitter();
+
+        emitter.on('starting', function () {
+            waitForStart(emitter, test, 0, 100);
+        });
+
+        emitter.on('started', function () {
+            request('http://localhost:3000/ecv', function (error, response, body) {
+                // Regex to match the expected response. Tricky part is the IPv4 match.
+                // Very naive exp to check numbers 0 - 255.
+                // (25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]? ) -> ( numbers 250 to 255 | numbers 200 to 249 | numbers 0 to 199)
+                // Same expression for each of the 4 IPs
+                var hostname = require('os').hostname();
+                var re = new RegExp('status=AVAILABLE&ServeTraffic=true&ip=(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)&hostname=' + hostname + '&port=3000&time=.*');
+                var result = re.exec(body);
+                test.ok(result !== null,
+                    'expected:status=AVAILABLE&ServeTraffic=true&ip=<Network IP>&hostname=' + hostname + '&port=3000&time=.*');
+
+                request({uri: 'http://localhost:3000/ecv/disable', method: 'POST'}, function (error, response, body) {
+                    // Wait for signal to propagate to workers
+                    setTimeout(function() {
+                        request('http://localhost:3000/ecv', function (error, response, body) {
+                            re = new RegExp('status=DISABLED&ServeTraffic=false&ip=(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)&hostname=' + hostname + '&port=3000&time=.*');
+                            var result = re.exec(body);
+                            test.ok(result !== null,
+                                'expected:status=AVAILABLE&ServeTraffic=false&ip=<Network IP>&hostname=' + hostname + '&port=3000&time=.*');
+                            request({uri: 'http://localhost:3000/ecv/enable', method: 'POST'}, function (error, response, body) {
+                                if(error) {
+                                    test.ok(false, 'could not enable again');
+                                }
+                                setTimeout(function() {
+                                    request('http://localhost:3000/ecv', function (error, response, body) {
+                                        if(error) {
+                                            test.ok(false, 'ecv did not succeed');
+                                        }
+                                        stop(emitter);
+                                    });
+                                }, 200);
+                            });
+                        });
+
+                    }, 200);
+                });
+            });
+        });
+
+        emitter.on('start failure', function (error) {
+            log('Failed to start');
+            log(error.stack || error);
+            test.ok(false, 'failed to start')
+        });
+
+        emitter.on('stopping', function () {
+            waitForStop.apply(null, [emitter, test, 0, 100])
+        });
+
+        emitter.on('stopped', function () {
+            log('Stopped');
+            // Assert that there are 0 pids.
+            fs.readdir('./pids', function (err, paths) {
+                test.equal(paths.length, 0);
+            });
+            test.done();
+        })
+        start(emitter);
     }
 }
 
