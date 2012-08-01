@@ -5,13 +5,13 @@
         "email": "subbu@ebaysf.com"
     }],
     "name": "cluster2",
-    "version": "0.3.2",
+    "version": "0.3.3",
     "repository": {
         "type": "git",
         "url": "https://github.com/ql-io/cluster2"
     },
     "engines": {
-        "node": ">= 0.6.0"
+        "node": ">= 0.8.0"
     },
     "main": "lib/index.js",
     "dependencies": {
