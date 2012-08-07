@@ -2,7 +2,9 @@
 
 ![Travis status](https://secure.travis-ci.org/ql-io/cluster2.png)
 
-cluster2 is a node.js (>= 0.6.x) compatible multi-process management module. This module grew out of
+NOTE: For node (<=0.6.x), use cluster2 version 0.3.1
+
+cluster2 is a node.js (>= 0.8.x) compatible multi-process management module. This module grew out of
 our needs in operationalizing node.js for [ql.io](https://github.com/ql-io/ql.io) at eBay. Built on
 node's `cluster`, cluster2 adds several safeguards and utility functions to help support real-world
 production scenarios:
