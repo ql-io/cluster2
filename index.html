@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/pygment_trac.css" media="screen" />
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print" />
+
+    <title>Cluster2 by ql-io</title>
+  </head>
+
+  <body>
+
+    <header>
+      <div class="container">
+        <h1>Cluster2</h1>
+        <h2>node.js cluster</h2>
+
+        <section id="downloads">
+          <a href="https://github.com/ql-io/cluster2/zipball/master" class="btn">Download as .zip</a>
+          <a href="https://github.com/ql-io/cluster2/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/ql-io/cluster2" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+        </section>
+      </div>
+    </header>
+
+    <div class="container">
+      <section id="main_content">
+        <h2>What is cluster2</h2>
+
+<p><img src="https://secure.travis-ci.org/ql-io/cluster2.png" alt="Travis status"></p>
+
+<p>NOTE: For node (&lt;=0.6.x), use cluster2 version 0.3.1</p>
+
+<p>cluster2 is a node.js (&gt;= 0.8.x) compatible multi-process management module. This module grew out of
+our needs in operationalizing node.js for <a href="https://github.com/ql-io/ql.io">ql.io</a> at eBay. Built on
+node's <code>cluster</code>, cluster2 adds several safeguards and utility functions to help support real-world
+production scenarios:</p>
+
+<ul>
+<li>Scriptable start, shutdown and stop flows</li>
+<li>Worker monitoring for process deaths</li>
+<li>Worker recycling</li>
+<li>Graceful shutdown</li>
+<li>Idle timeouts</li>
+<li>Validation hooks (for other tools to monitor cluster2 apps)</li>
+<li>Events for logging cluster activities</li>
+<li>Exit with error code when the port is busy to fail start scripts</li>
+<li>Disable monitor</li>
+<li>and more coming soon</li>
+</ul><h2>Usage</h2>
+
+<h3>Getting cluster2</h3>
+
+<pre><code>npm install cluster2
+</code></pre>
+
+<h3>Start a TCP Server</h3>
+
+<pre><code>var Cluster = require('cluster2'),
+    net = require('net');
+var server = net.createServer(function (c) {
+    c.on('end', function () {
+        console.log('server disconnected');
+    });
+    c.write('hello\r\n');
+    c.pipe(c);
+});
+
+var c = new Cluster({
+    port: 3000,
+    cluster: true
+});
+</code></pre>
+
+<h3>Start a HTTP Server</h3>
+
+<pre><code>var Cluster = require('cluster2'),
+    http = require('http');
+var server = http.createServer(function (req, res) {
+    res.writeHead(200);
+    res.end('hello');
+});
+var c = new Cluster({
+    port: 3000
+});
+c.listen(function(cb) {
+    cb(server);
+});
+</code></pre>
+
+<h3>Start an Express Server</h3>
+
+<pre><code>var Cluster = require('cluster2'),
+    express = require('express');
+var app = express.createServer();
+app.get('/', function(req, res) {
+    res.send('hello');
+});
+
+var c = new Cluster({
+    port: 3000,
+});
+c.listen(function(cb) {
+    cb(app);
+});
+</code></pre>
+
+<h3>Stop a Server</h3>
+
+<pre><code>var Cluster = require('cluster2');
+var c = new Cluster();
+c.stop();
+</code></pre>
+
+<h3>Gracefully Shutdown a Server</h3>
+
+<pre><code>var Cluster = require('cluster2');
+var c = new Cluster();
+c.shutdown();
+</code></pre>
+
+<h2>Options</h2>
+
+<p>Cluster2 takes the following options.</p>
+
+<ul>
+<li>
+<code>cluster</code>: When <code>true</code> starts a number of workers. Use <code>false</code> to start the server as a single
+process. Defaults to <code>true</code>.</li>
+<li>
+<code>pids</code>: A directory to write PID files for master and workers.</li>
+<li>
+<code>port</code>: Port number for the app, defaults to <code>3000</code>.</li>
+<li>
+<code>monPort</code>: Port number for the monitor URL, defaults to <code>3001</code>. Go to <code>http://&lt;localhost&gt;:3001</code> to
+view application logs (whatever is written to a <code>/logs</code> dir), and npm dependencies.</li>
+<li>
+<code>ecv</code>: ECV stands for "extended content verification". This is an object with the following
+additional properties:
+
+<ul>
+<li>
+<code>path</code>: A path to serve a heart beat. See below.</li>
+<li>
+<code>monitor</code>: A URI to check before emitting a valid heart beat signal</li>
+<li>
+<code>control</code>: When true, allows clients to enable or disable the signal. See below.
+validator to validate the runtime health of the app. If found unhealthy, emits a disable</li>
+</ul>
+</li>
+<li>
+<code>noWorkers</code>: Defaults to <code>os.cpus().length</code>.</li>
+<li>
+<code>timeout</code>: Idle socket timeout. Automatically ends incoming sockets if found idle for this
+duration. Defaults to <code>30</code> seconds.</li>
+<li>
+<code>connThreshold</code>: When the number of connections processed exceeds this numbers, recycle the worker
+process. This can help recover from slow leaks in your code or dependent modules.</li>
+</ul><h2>Graceful Shutdown</h2>
+
+<p>The purpose of <code>shutdown()</code> is to let the server reject taking new connections, handle all pending
+requests and end the connecton so that no request dropped. In order to handling <code>shutdown()</code>, the
+server must handle <code>close</code> events as follows.</p>
+
+<pre><code>var serving = true;
+var server = http.createServer(function (req, res) {
+    if(!serving) {
+        // Be nice and send a connection: close as otherwise the client may pump more requests
+        // on the same connection
+        res.writeHead(200, {
+            'connection': 'close'
+        });
+    }
+    res.writeHead(200);
+    res.end('hello');
+});
+server.on('close', function() {
+    serving = false;
+})
+var c = new Cluster({
+    port: 3000,
+    cluster: true
+});
+</code></pre>
+
+<p>Completion of <code>shutdown()</code> does not necessarily mean that all worker processes are dead immediately. 
+The workers may take a while to complete processing of current requests and exit. The <code>shutdown()</code> 
+flow only guarantees that the server takes no new connections.</p>
+
+<h2>Cluster2 Events</h2>
+
+<p>Cluster2 is an <code>EventEmitter</code> and emits the following events.</p>
+
+<ul>
+<li>
+<code>died</code>: Emitted when a worker dies. This event is also emitted during normal <code>shutdown()</code> or
+<code>stop()</code>.</li>
+<li>
+<code>forked</code>: Emitted when a new worker is forked.</li>
+<li>
+<code>&lt;signal&gt;</code>: Emitted when a worker receives a signal (such as <code>SIGKILL</code>, <code>SIGTERM</code> or <code>SIGINT</code>).</li>
+</ul><p>Here is an example that logs these events to the disk.</p>
+
+<pre><code>var Cluster = require('cluster2'),
+    http = require('http');
+
+var server = http.createServer(function (req, res) {
+    res.writeHead(200);
+    res.end('hello');
+});
+var c = new Cluster({
+    cluster: true,
+    port: 3000
+});
+c.on('died', function(pid) {
+    console.log('Worker ' + pid + ' died');
+});
+c.on('forked', function(pid) {
+    console.log('Worker ' + pid + ' forked');
+});
+c.on('SIGKILL', function() {
+    console.log('Got SIGKILL');
+});
+c.on('SIGTERM', function(event) {
+    console.log('Got SIGTERM - shutting down');
+});
+c.on('SIGINT', function() {
+    console.log('Got SIGINT');
+});
+c.listen(function(cb) {
+    cb(server);
+});
+</code></pre>
+
+<h2>Routing Traffic</h2>
+
+<p>It is fairly common for proxies or load balancers deployed in front of node clusters, and those
+proxies to use monitor URLs to detect the health of the cluster. Cluster2 includes a monitor
+at <code>http://&lt;host&gt;:&lt;port&gt;/ecv</code>. You can change this by setting the <code>path</code> property when initializing
+the cluster.</p>
+
+<p>In case you want to take the node cluster out of rotation from the proxy/load balancer, you can do
+so by setting <code>control</code> to <code>true</code> when initializing the cluster. At runtime, you can send a <code>POST</code>
+request to <code>http://&lt;host&gt;:&lt;port&gt;/ecv/disable</code>. Once this is done, further requests to
+<code>http://&lt;host&gt;:&lt;port&gt;/ecv</code> will get a network error. You can bring the cluster back to rotation by
+sending a <code>POST</code> request to <code>http://&lt;host&gt;:&lt;port&gt;/ecv/enable</code>.</p>
+
+<p>Since it will be potentially disastrous to let artibrary clients enable/disable traffic, you should
+configure your proxy/load balancer to prevent external traffic to <code>/ecv*</code>.</p>
+
+<p>To test this, bring up an example</p>
+
+<pre><code>node examples/express/express-server.js
+</code></pre>
+
+<p>and send a <code>GET</code> request to <code>http://localhost:3000/ecv</code> and notice the response.</p>
+
+<pre><code>HTTP/1.1 200 OK
+X-Powered-By: Cluster2
+content-type: text/plain
+since: Fri May 18 2012 09:49:32 GMT-0700 (PDT)
+cache-control: no-cache
+Connection: keep-alive
+Transfer-Encoding: chunked
+
+status=AVAILABLE&amp;ServeTraffic=true&amp;ip=127.0.0.1&amp;hostname=somehost&amp;port=3000&amp;time=Fri May 18 2012 09:49:49 GMT-0700 (PDT)
+</code></pre>
+
+<p>To flip the monitor into a disabled state, send a <code>POST</code> request to <code>http://localhost:3000/disable</code>.</p>
+
+<pre><code>HTTP/1.1 204 No Content
+X-Powered-By: Cluster2
+since: Fri May 18 2012 09:54:25 GMT-0700 (PDT)
+cache-control: no-cache
+Connection: close
+</code></pre>
+
+<p>Subsequent <code>GET</code> requests to <code>http://localhost:3000/ecv</code> will return a response similar to the one
+below.</p>
+
+<pre><code>HTTP/1.1 400 Bad Request
+X-Powered-By: Cluster2
+content-type: text/plain
+since: Fri May 18 2012 09:54:25 GMT-0700 (PDT)
+cache-control: no-cache
+Connection: close
+Transfer-Encoding: chunked
+
+status=DISABLED&amp;ServeTraffic=false&amp;ip=127.0.0.1&amp;hostname=somehost&amp;port=3000&amp;time=Fri May 18 2012 09:55:17 GMT-0700 (PDT)
+</code></pre>
+
+<p>To flip the monitor back into an enabled state, send a <code>POST</code> request to <code>http://localhost:3000/enable</code>.</p>
+      </section>
+    </div>
+
+    
+  </body>
+</html>
