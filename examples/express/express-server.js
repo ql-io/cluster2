@@ -22,8 +22,17 @@ var Cluster = require('../../lib/index.js'),
 
 var serving = true;
 var app = express.createServer();
+var monApp = express.createServer();
+
 app.get('/', function(req, res) {
     res.send('hello');
+    if(!serving)  {
+        req.connection.end();
+    }
+});
+
+monApp.get('/monapp', function(req, res) {
+    res.send('Hello from Monitor app');
     if(!serving)  {
         req.connection.end();
     }
@@ -55,5 +64,7 @@ c.on('forked', function(pid) {
 });
 
 c.listen(function(cb) {
-    cb(app);
+	// You need to pass the app. monApp is optional. 
+	// If monApp is not passed, cluster2 creates one for you.
+    cb(app, monApp);
 });
