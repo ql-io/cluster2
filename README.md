@@ -95,6 +95,8 @@ Cluster2 takes the following options.
    process. Defaults to `true`.
 * `pids`: A directory to write PID files for master and workers.
 * `port`: Port number for the app, defaults to `3000`.
+* `host`: Hostname or IP for the app listening, defaults to `0.0.0.0`.
+* `monHost`: Hostname or IP for the monitor listening, defaults to `0.0.0.0`. 
 * `monPort`: Port number for the monitor URL, defaults to `3001`. Go to `http://<localhost>:3001` to
    view application logs (whatever is written to a `/logs` dir), and npm dependencies.
 * `ecv`: ECV stands for "extended content verification". This is an object with the following
@@ -159,7 +161,8 @@ Here is an example that logs these events to the disk.
     });
     var c = new Cluster({
         cluster: true,
-        port: 3000
+        port: 3000,
+        host: 'localhost'
     });
     c.on('died', function(pid) {
         console.log('Worker ' + pid + ' died');
