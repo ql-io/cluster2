@@ -42,6 +42,9 @@ production scenarios:
         port: 3000,
         cluster: true
     });
+    c.listen(function(cb) {
+        cb(server);
+    });
 
 ### Start a HTTP Server
 
