@@ -29,16 +29,19 @@ server.get('/', function(req, res) {
 server.on('close', function() {
     serving = false;
 })
+
 var c = new Cluster({
     timeout: 300 * 1000,
-    port: 3000,
+    port: process.env["port"] || 3000,
+    monPort: process.env["monPort"] || 10000 - process.env["port"] || 3001,
     cluster: true,
-    noWorkers: 2,
+    noWorkers: process.env["noWorkers"] || 2,
     connThreshold: 10,
     ecv: {
         control: true
     }
 });
+
 c.on('died', function(pid) {
     console.log('Worker ' + pid + ' died');
 });
@@ -47,15 +50,27 @@ c.on('forked', function(pid) {
 });
 c.on('SIGKILL', function() {
     console.log('Got SIGKILL');
+    process.send({
+        'signal':'SIGKILL'
+    });
 });
 c.on('SIGTERM', function(event) {
     console.log('Got SIGTERM - shutting down');
     console.log(event);
+    process.send({
+        'signal':'SIGTERM'
+    });
 });
 c.on('SIGINT', function() {
     console.log('Got SIGINT');
+    process.send({
+        'signal':'SIGINT'
+    });
 });
 
 c.listen(function(cb) {
     cb(server);
+    process.send({
+        ready: true
+    });
 });

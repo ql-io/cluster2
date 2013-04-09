@@ -20,7 +20,9 @@ var childProcess = require('child_process'),
     request = require('request'),
     fs = require('fs'),
     os = require('os'),
-    EventEmitter = require('events').EventEmitter;
+    EventEmitter = require('events').EventEmitter,
+    util = require('util'),
+    _ = require('underscore');
 
 var debug = false;
 function log() {
@@ -28,12 +30,38 @@ function log() {
         console.log.apply(null, arguments);
     }
 }
+var port = 3000,
+    monPort = 10000 - port;
+
 module.exports = {
+
+    setUp: function (callback) {
+        fs.exists("./ports", function(exists){
+            if(!exists){
+                fs.writeFileSync("./ports", port);
+            }
+            fs.readFile("./ports",
+                function(err, data){
+                    port = parseInt(data, 10) + 1;
+                    if(port >= 5000){
+                        port = 3000;
+                    }
+                    monPort = 10000 - port;
+                    fs.writeFile("./ports", "" + port, {
+                            encoding : "utf8"
+                        }, 
+                        function(){
+                            callback();
+                        });
+                });
+        });
+    },
+
     'start and then stop': function(test) {
-        var emitter = new EventEmitter();
+        var emitter = new EventEmitter(), child = start(emitter);
 
         emitter.on('starting', function() {
-            waitForStart(emitter, test, 0, 100);
+            waitForStart(child, emitter, test, 0, 100);
         });
 
         emitter.on('started', function () {
@@ -58,29 +86,36 @@ module.exports = {
             });
             test.done();
         });
-        start(emitter);
+
+        emitter.emit('starting');
     },
 
     'start, check ecv and stop': function(test) {
-        var emitter = new EventEmitter();
+        var emitter = new EventEmitter(), child = start(emitter);
 
         emitter.on('starting', function() {
-            waitForStart(emitter, test, 0, 100);
+            waitForStart(child, emitter, test, 0, 100);
         });
 
         emitter.on('started', function () {
-            request('http://localhost:3000/ecv', function (error, response, body) {
-                // Regex to match the expected response. Tricky part is the IPv4 match.
-                // Very naive exp to check numbers 0 - 255.
-                // (25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]? ) -> ( numbers 250 to 255 | numbers 200 to 249 | numbers 0 to 199)
-                // Same expression for each of the 4 IPs
-                var hostname = require('os').hostname();
-                var re = new RegExp('status=AVAILABLE&ServeTraffic=true&ip=(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)&hostname=' + hostname + '&port=3000&time=.*');
-                var result = re.exec(body);
-                test.ok(result !== null,
-                        'expected:status=AVAILABLE&ServeTraffic=true&ip=<Network IP>&hostname=' + hostname + '&port=3000&time=.*');
-                stop(emitter);
-            });
+            setTimeout(function(){
+                request(util.format('http://localhost:%d/ecv', port), function (error, response, body) {
+                    // Regex to match the expected response. Tricky part is the IPv4 match.
+                    // Very naive exp to check numbers 0 - 255.
+                    // (25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]? ) -> ( numbers 250 to 255 | numbers 200 to 249 | numbers 0 to 199)
+                    // Same expression for each of the 4 IPs
+                    var hostname = require('os').hostname();
+                    var re = new RegExp(util.format(
+                        'status=AVAILABLE&ServeTraffic=true&ip=(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)&hostname=%s&port=%d&time=.*',
+                        hostname,
+                        port));
+
+                    test.ok(re.exec(body) !== null,
+                            util.format('expected:status=AVAILABLE&ServeTraffic=true&ip=<Network IP>&hostname=%s&port=%d&time=.*&error=%s&body=%s', hostname, port, error, body));
+                    
+                    stop(emitter);
+                })
+            }, 1000);
         });
 
         emitter.on('start failure', function (error) {
@@ -90,7 +125,7 @@ module.exports = {
         });
 
         emitter.on('stopping', function() {
-            waitForStop.apply(null, [emitter, test, 0, 100])
+            waitForStop.apply(null, [emitter, test, 0, 100]);
         });
 
         emitter.on('stopped', function() {
@@ -101,14 +136,15 @@ module.exports = {
             });
             test.done();
         })
-        start(emitter);
+
+        emitter.emit('starting');
     },
 
     'start and then shutdown': function (test) {
-        var emitter = new EventEmitter();
+        var emitter = new EventEmitter(), child = start(emitter);
 
         emitter.on('starting', function () {
-            waitForStart(emitter, test, 0, 100);
+            waitForStart(child, emitter, test, 0, 100);
         });
 
         emitter.on('started', function () {
@@ -133,20 +169,22 @@ module.exports = {
             });
             test.done();
         });
-        start(emitter);
+
+        emitter.emit('starting');
     },
 
+
     'start, send traffic, get responses, and then shutdown': function (test) {
-        var emitter = new EventEmitter();
+        var emitter = new EventEmitter(), child = start(emitter);
 
         emitter.on('starting', function () {
-            waitForStart(emitter, test, 0, 100);
+            waitForStart(child, emitter, test, 0, 100);
         });
 
         emitter.on('started', function () {
             var respCount = 0;
             for(var i = 0; i < 10; i++) {
-                request('http://localhost:3000', function (error, response, body) {
+                request(util.format('http://localhost:%d', port), function (error, response, body) {
                     if(error) {
                         test.ok(false, 'got error from server')
                     }
@@ -178,20 +216,21 @@ module.exports = {
             });
             test.done();
         });
-        start(emitter);
+
+        emitter.emit('starting');
     },
 
     'start, graceful shutdown': function (test) {
-        var emitter = new EventEmitter();
+        var emitter = new EventEmitter(), child = start(emitter);
 
         emitter.on('starting', function () {
-            waitForStart(emitter, test, 0, 100);
+            waitForStart(child, emitter, test, 0, 100);
         });
 
         var respCount = 0;
         emitter.on('started', function () {
             for(var i = 0; i < 2000; i++) {
-                request('http://localhost:3000', function (error, response, body) {
+                request(util.format('http://localhost:%d', port), function (error, response, body) {
                     if(error) {
                         test.ok(false, 'got error from server')
                     }
@@ -224,14 +263,15 @@ module.exports = {
             });
             test.done();
         });
-        start(emitter);
+
+        emitter.emit('starting');
     },
 
     'start, check recycle on threshold, shutdown': function (test) {
-        var emitter = new EventEmitter();
+        var emitter = new EventEmitter(), child = start(emitter);
 
         emitter.on('starting', function () {
-            waitForStart(emitter, test, 0, 100);
+            waitForStart(child, emitter, test, 0, 100);
         });
 
         var respCount = 0, errCount = 0;
@@ -242,7 +282,7 @@ module.exports = {
             // recycle
             for(var i = 0; i < 100; i++) {
                 request({
-                    uri: 'http://localhost:3000',
+                    uri: util.format('http://localhost:%d', port),
                     headers: {
                         'connection': 'close'
                     }
@@ -288,20 +328,21 @@ module.exports = {
             });
             test.done();
         });
-        start(emitter);
+
+        emitter.emit('starting');
     },
 
     'start, abrupt stop': function (test) {
-        var emitter = new EventEmitter();
+        var emitter = new EventEmitter(), child = start(emitter);
 
         emitter.on('starting', function () {
-            waitForStart(emitter, test, 0, 100);
+            waitForStart(child, emitter, test, 0, 100);
         });
 
         var respCount = 0, errCount = 0;
         emitter.on('started', function () {
             for(var i = 0; i < 2000; i++) {
-                request('http://localhost:3000', function (error, response, body) {
+                request(util.format('http://localhost:%d', port), function (error, response, body) {
                     if(error) {
                         errCount++;
                     }
@@ -334,42 +375,49 @@ module.exports = {
             });
             test.done();
         });
-        start(emitter);
+
+        emitter.emit('starting');
     },
 
     'start, disable, enable and stop': function(test) {
-        var emitter = new EventEmitter();
+        var emitter = new EventEmitter(), child = start(emitter);
 
         emitter.on('starting', function () {
-            waitForStart(emitter, test, 0, 100);
+            waitForStart(child, emitter, test, 0, 100);
         });
 
         emitter.on('started', function () {
-            request('http://localhost:3000/ecv', function (error, response, body) {
+            request(util.format('http://localhost:%d/ecv', port), function (error, response, body) {
                 // Regex to match the expected response. Tricky part is the IPv4 match.
                 // Very naive exp to check numbers 0 - 255.
                 // (25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]? ) -> ( numbers 250 to 255 | numbers 200 to 249 | numbers 0 to 199)
                 // Same expression for each of the 4 IPs
                 var hostname = require('os').hostname();
-                var re = new RegExp('status=AVAILABLE&ServeTraffic=true&ip=(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)&hostname=' + hostname + '&port=3000&time=.*');
+                var re = new RegExp(util.format(
+                    'status=AVAILABLE&ServeTraffic=true&ip=(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)&hostname=%s&port=%d&time=.*',
+                    hostname,
+                    port));
                 var result = re.exec(body);
                 test.ok(result !== null,
-                    'expected:status=AVAILABLE&ServeTraffic=true&ip=<Network IP>&hostname=' + hostname + '&port=3000&time=.*');
+                    util.format('expected:status=AVAILABLE&ServeTraffic=true&ip=<Network IP>&hostname=%s&port=%d&time=.*', hostname, port));
 
-                request({uri: 'http://localhost:3000/ecv/disable', method: 'POST'}, function (error, response, body) {
+                request({uri: util.format('http://localhost:%d/ecv/disable', port), method: 'POST'}, function (error, response, body) {
                     // Wait for signal to propagate to workers
                     setTimeout(function() {
-                        request('http://localhost:3000/ecv', function (error, response, body) {
-                            re = new RegExp('status=DISABLED&ServeTraffic=false&ip=(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)&hostname=' + hostname + '&port=3000&time=.*');
+                        request(util.format('http://localhost:%d/ecv', port), function (error, response, body) {
+                            re = new RegExp(util.format(
+                                'status=DISABLED&ServeTraffic=false&ip=(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)&hostname=%s&port=%d&time=.*',
+                                hostname,
+                                port));
                             var result = re.exec(body);
                             test.ok(result !== null,
-                                'expected:status=AVAILABLE&ServeTraffic=false&ip=<Network IP>&hostname=' + hostname + '&port=3000&time=.*');
-                            request({uri: 'http://localhost:3000/ecv/enable', method: 'POST'}, function (error, response, body) {
+                                util.format('expected:status=AVAILABLE&ServeTraffic=false&ip=<Network IP>&hostname=%s&port=%d&time=.*', hostname, port));
+                            request({uri: util.format('http://localhost:%d/ecv/enable', port), method: 'POST'}, function (error, response, body) {
                                 if(error) {
                                     test.ok(false, 'could not enable again');
                                 }
                                 setTimeout(function() {
-                                    request('http://localhost:3000/ecv', function (error, response, body) {
+                                    request(util.format('http://localhost:%d/ecv', port), function (error, response, body) {
                                         if(error) {
                                             test.ok(false, 'ecv did not succeed');
                                         }
@@ -402,32 +450,34 @@ module.exports = {
             });
             test.done();
         })
-        start(emitter);
+
+        emitter.emit('starting');
     }
 }
 
 // Start the cluster
 function start(emitter) {
     log('Starting');
-    var start = childProcess.spawn('test/bin/start.sh');
+    var env = {};
+    _.extend(env, process.env);
+    _.extend(env, {
+        port:port,
+        monPort:monPort
+    });
+    var start = childProcess.spawn('node', ['test/lib/server.js'], {
+        env: env,
+        stdio: ['pipe', 1, 2, 'ipc']
+    });
     start.on('exit', function (code, signal) {
         log('Process exited with signal ' + signal + ' and code ' + code);
     });
 
-    start.stdout.setEncoding('utf8');
-    start.stdout.on('data', function (data) {
-        log(data);
-    });
-    start.stderr.setEncoding('utf8');
-    start.stderr.on('data', function (data) {
-        log('error: ' + data);
-    });
-    emitter.emit('starting');
+    return start;
 }
 
 function stop(emitter) {
     log('Stopping');
-    var stop = childProcess.spawn('test/bin/stop.sh');
+    var stop = childProcess.spawn('node', ['test/lib/stop.js']);
     stop.on('exit', function (code, signal) {
         log('Process exited with signal ' + signal + ' and code ' + code);
     });
@@ -441,7 +491,7 @@ function stop(emitter) {
 
 function shutdown(emitter) {
     log('Shutting down');
-    var stop = childProcess.spawn('test/bin/shutdown.sh');
+    var stop = childProcess.spawn('node', ['test/lib/shutdown.js']);
     stop.on('exit', function (code, signal) {
         log('Process exited with signal ' + signal + ' and code ' + code);
     });
@@ -454,17 +504,17 @@ function shutdown(emitter) {
 }
 
 
-function waitForStart(emitter, test, current, max) {
+function waitForStart(child, emitter, test, current, max) {
     current++;
     if(current < max) {
-        request('http://localhost:3000', function (error, response, body) {
+        request(util.format('http://localhost:%d', port), function (error, response, body) {
             log('Waiting for server to start');
             if(error) {
                 log('Error: ');
                 log(error.stack || error);
                 if(error.code === 'ECONNREFUSED') {
                     setTimeout(function () {
-                        waitForStart.apply(null, [emitter, test, current, max])
+                        waitForStart.apply(null, [child, emitter, test, current, max])
                     }, 100);
                 }
             }
@@ -483,7 +533,7 @@ function waitForStart(emitter, test, current, max) {
 function waitForStop(emitter, test, current, max) {
     current++;
     if(current < max) {
-        request('http://localhost:3000', function (error, response, body) {
+        request(util.format('http://localhost:%d', port), function (error, response, body) {
            log('Waiting for server to stop');
            if(error) {
                emitter.emit('stopped');
