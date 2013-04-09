@@ -45,15 +45,18 @@ var c = new Cluster({
 c.on('died', function(pid) {
     console.log('Worker ' + pid + ' died');
 });
+
 c.on('forked', function(pid) {
     console.log('Worker ' + pid + ' forked');
 });
+
 c.on('SIGKILL', function() {
     console.log('Got SIGKILL');
     process.send({
         'signal':'SIGKILL'
     });
 });
+
 c.on('SIGTERM', function(event) {
     console.log('Got SIGTERM - shutting down');
     console.log(event);
@@ -61,6 +64,7 @@ c.on('SIGTERM', function(event) {
         'signal':'SIGTERM'
     });
 });
+
 c.on('SIGINT', function() {
     console.log('Got SIGINT');
     process.send({

@@ -14,20 +14,21 @@
  * limitations under the License.
  */
 
-'use strict'
+'use strict';
 
-var childProcess = require('child_process'),
+var spawn = require('child_process').spawn,
     request = require('request'),
     fs = require('fs'),
     os = require('os'),
     EventEmitter = require('events').EventEmitter,
     util = require('util'),
-    _ = require('underscore');
+    _ = require('underscore'),
+    Q = require('q');
 
 var debug = false;
 function log() {
     if(debug) {
-        console.log.apply(null, arguments);
+        console.log.apply(null, (arguments || []).join(''));
     }
 }
 var port = 3000,
@@ -36,6 +37,7 @@ var port = 3000,
 module.exports = {
 
     setUp: function (callback) {
+        //to ensure that occupying ports won't cause all test cases to fail
         fs.exists("./ports", function(exists){
             if(!exists){
                 fs.writeFileSync("./ports", port);
@@ -69,8 +71,7 @@ module.exports = {
         });
 
         emitter.on('start failure', function (error) {
-            log('Failed to start');
-            log(error.stack || error);
+            log('Failed to start ', error.stack || error);
             test.ok(false, 'failed to start')
         });
 
@@ -119,8 +120,7 @@ module.exports = {
         });
 
         emitter.on('start failure', function (error) {
-            log('Failed to start');
-            log(error.stack || error);
+            log('Failed to start ', error.stack || error);
             test.ok(false, 'failed to start')
         });
 
@@ -152,8 +152,7 @@ module.exports = {
         });
 
         emitter.on('start failure', function (error) {
-            log('Failed to start');
-            log(error.stack || error);
+            log('Failed to start ', error.stack || error);
             test.ok(false, 'failed to start')
         });
 
@@ -199,8 +198,7 @@ module.exports = {
         });
 
         emitter.on('start failure', function (error) {
-            log('Failed to start');
-            log(error.stack || error);
+            log('Failed to start ', error.stack || error);
             test.ok(false, 'failed to start')
         });
 
@@ -244,8 +242,7 @@ module.exports = {
         });
 
         emitter.on('start failure', function (error) {
-            log('Failed to start');
-            log(error.stack || error);
+            log('Failed to start ', error.stack || error);
             test.ok(false, 'failed to start')
         });
 
@@ -307,8 +304,7 @@ module.exports = {
         });
 
         emitter.on('start failure', function (error) {
-            log('Failed to start');
-            log(error.stack || error);
+            log('Failed to start ', error.stack || error);
             test.ok(false, 'failed to start')
         });
 
@@ -356,8 +352,7 @@ module.exports = {
         });
 
         emitter.on('start failure', function (error) {
-            log('Failed to start');
-            log(error.stack || error);
+            log('Failed to start ', error.stack || error);
             test.ok(false, 'failed to start')
         });
 
@@ -433,8 +428,7 @@ module.exports = {
         });
 
         emitter.on('start failure', function (error) {
-            log('Failed to start');
-            log(error.stack || error);
+            log('Failed to start ', error.stack || error);
             test.ok(false, 'failed to start')
         });
 
@@ -464,12 +458,12 @@ function start(emitter) {
         port:port,
         monPort:monPort
     });
-    var start = childProcess.spawn('node', ['test/lib/server.js'], {
+    var start = spawn('node', ['test/lib/server.js'], {
         env: env,
-        stdio: ['pipe', 1, 2, 'ipc']
+        stdio: ['pipe', 1, 2, 'ipc']//enable piped stdout, and ipc for messaging
     });
     start.on('exit', function (code, signal) {
-        log('Process exited with signal ' + signal + ' and code ' + code);
+        log('Process exited with signal ', signal, ' and code ', code);
     });
 
     return start;
@@ -477,9 +471,9 @@ function start(emitter) {
 
 function stop(emitter) {
     log('Stopping');
-    var stop = childProcess.spawn('node', ['test/lib/stop.js']);
+    var stop = spawn('node', ['test/lib/stop.js']);
     stop.on('exit', function (code, signal) {
-        log('Process exited with signal ' + signal + ' and code ' + code);
+        log('Process exited with signal ', signal, ' and code ', code);
     });
 
     stop.stdout.setEncoding('utf8');
@@ -491,13 +485,13 @@ function stop(emitter) {
 
 function shutdown(emitter) {
     log('Shutting down');
-    var stop = childProcess.spawn('node', ['test/lib/shutdown.js']);
-    stop.on('exit', function (code, signal) {
-        log('Process exited with signal ' + signal + ' and code ' + code);
+    var shutdown = spawn('node', ['test/lib/shutdown.js']);
+    shutdown.on('exit', function (code, signal) {
+        log('Process exited with signal ', signal, ' and code ', code);
     });
 
-    stop.stdout.setEncoding('utf8');
-    stop.stdout.on('data', function (data) {
+    shutdown.stdout.setEncoding('utf8');
+    shutdown.stdout.on('data', function (data) {
         log(data);
     });
     emitter.emit('stopping');
@@ -510,8 +504,7 @@ function waitForStart(child, emitter, test, current, max) {
         request(util.format('http://localhost:%d', port), function (error, response, body) {
             log('Waiting for server to start');
             if(error) {
-                log('Error: ');
-                log(error.stack || error);
+                log('Error: ', error.stack || error);
                 if(error.code === 'ECONNREFUSED') {
                     setTimeout(function () {
                         waitForStart.apply(null, [child, emitter, test, current, max])
@@ -528,7 +521,6 @@ function waitForStart(child, emitter, test, current, max) {
         test.done();
     }
 }
-
 
 function waitForStop(emitter, test, current, max) {
     current++;
