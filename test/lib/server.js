@@ -44,10 +44,20 @@ var c = new Cluster({
 
 c.on('died', function(pid) {
     console.log('Worker ' + pid + ' died');
+    process.send({
+        dead: true
+    })
 });
 
 c.on('forked', function(pid) {
     console.log('Worker ' + pid + ' forked');
+});
+
+c.on('listening', function(pid){
+    console.log('Worker ' + pid + ' listening');
+    process.send({
+        ready: true
+    });
 });
 
 c.on('SIGKILL', function() {
@@ -74,7 +84,4 @@ c.on('SIGINT', function() {
 
 c.listen(function(cb) {
     cb(server);
-    process.send({
-        ready: true
-    });
 });

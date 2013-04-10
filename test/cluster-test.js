@@ -497,7 +497,7 @@ function shutdown(emitter) {
     emitter.emit('stopping');
 }
 
-
+/*
 function waitForStart(child, emitter, test, current, max) {
     current++;
     if(current < max) {
@@ -520,6 +520,30 @@ function waitForStart(child, emitter, test, current, max) {
         test.ok(false, 'Server did not start. Giving up');
         test.done();
     }
+}
+*/
+
+function waitForStart(child, emitter, test) {
+
+    var deferred = Q.defer();
+    var timeOut = setTimeout(function(){
+        deferred.reject(new Error("timeout"));
+    }, 3000);
+
+    child.on("message", function(message){
+        if(message.ready){
+            clearTimeout(timeOut);
+            deferred.resolve();
+        }
+    });
+
+    deferred.promise.then(function(){
+        emitter.emit("started");
+    })
+    .fail(function(error){
+        test.ok(false, error);
+        test.done();
+    });
 }
 
 function waitForStop(emitter, test, current, max) {
