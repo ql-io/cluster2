@@ -39,7 +39,8 @@ var c = new Cluster({
     connThreshold: 10,
     ecv: {
         control: true
-    }
+    },
+    heartbeatInterval: 1000
 });
 
 c.on('died', function(pid) {
@@ -80,6 +81,12 @@ c.on('SIGINT', function() {
     process.send({
         'signal':'SIGINT'
     });
+});
+
+c.on('heartbeat', function(heartbeat){
+
+    heartbeat.type = 'heartbeat';
+    process.send(heartbeat);
 });
 
 c.listen(function(cb) {

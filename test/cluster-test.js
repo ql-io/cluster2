@@ -91,6 +91,52 @@ module.exports = {
         emitter.emit('starting');
     },
 
+    'start, check heartbeat and stop': function(test) {
+        var emitter = new EventEmitter(), child = start(emitter);
+
+        emitter.on('starting', function() {
+            waitForStart(child, emitter, test, 0, 100);
+        });
+
+        emitter.on('started', function () {
+
+            var timeOut = setTimeout(function(){
+                test.ok(false, "timeout and no heartbeat found");
+                stop(emitter);
+            }, 3000);
+
+            emitter.on('heartbeat', function(heartbeat){
+                test.ok(heartbeat.pid);
+                test.ok(heartbeat.uptime);
+                test.ok(heartbeat.totalmem);
+                test.ok(heartbeat.freemem);
+
+                clearTimeout(timeOut);
+                stop(emitter);
+            });
+        });
+
+        emitter.on('start failure', function (error) {
+            log('Failed to start ', error.stack || error);
+            test.ok(false, 'failed to start')
+        });
+
+        emitter.on('stopping', function() {
+            waitForStop.apply(null, [emitter, test, 0, 100])
+        });
+
+        emitter.on('stopped', function() {
+            log('Stopped');
+            // Assert that there are 0 pids.
+            fs.readdir('./pids', function(err, paths) {
+                test.equal(paths.length, 0);
+            });
+            test.done();
+        });
+
+        emitter.emit('starting');
+    },
+
     'start, check ecv and stop': function(test) {
         var emitter = new EventEmitter(), child = start(emitter);
 
@@ -534,6 +580,9 @@ function waitForStart(child, emitter, test) {
         if(message.ready){
             clearTimeout(timeOut);
             deferred.resolve();
+        }
+        if(message.type === 'heartbeat'){
+            emitter.emit('heartbeat', message);
         }
     });
 
