@@ -242,3 +242,17 @@ below.
 
 To flip the monitor back into an enabled state, send a `POST` request to `http://localhost:3000/enable`.
 
+
+NOTE for 0.4.0 version
+The major change is to support a general work delegation pattern between workers & master. In a few scenarios, we've seen duplicate work
+done by each worker, that could be delegated to master to address and avoid the duplication of effort. And to make it general enough, we
+defined the following delegation pattern:
+worker -> master : message
+message.type is "delegate"
+message.delegate defines the actual message type
+message.expect is optional, if not given, the delegate work is silently handled by master (e.g. logging remotely); if given, worker will expect a response message whose
+type must equal message.expect; if given expect, the following will be enabled: message.matches defines the matching criteria of the response message, message.timeout defines
+the max timeout of the delegate work. message.notification allows delegated work to publish changes detected later.
+message.origin keeps the orginal message.
+In cluster2, after master receives the message from worker, it would turn it into an event message, and find the proper listener to handle such.
+The event handler could be config reader, remote logger, resource externalizer e.g. and they might/might not respond to master based on the expect.

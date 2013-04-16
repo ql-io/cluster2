@@ -5,7 +5,7 @@
         "email": "subbu@ebaysf.com"
     }],
     "name": "cluster2",
-    "version": "0.3.9",
+    "version": "0.4.0",
     "repository": {
         "type": "git",
         "url": "https://github.com/ql-io/cluster2"
