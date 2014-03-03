@@ -219,7 +219,7 @@ and send a `GET` request to `http://localhost:3000/ecv` and notice the response.
 
     status=AVAILABLE&ServeTraffic=true&ip=127.0.0.1&hostname=somehost&port=3000&time=Fri May 18 2012 09:49:49 GMT-0700 (PDT)
 
-To flip the monitor into a disabled state, send a `POST` request to `http://localhost:3000/disable`.
+To flip the monitor into a disabled state, send a `POST` request to `http://localhost:3000/ecv/disable`.
 
     HTTP/1.1 204 No Content
     X-Powered-By: Cluster2
@@ -240,5 +240,5 @@ below.
 
     status=DISABLED&ServeTraffic=false&ip=127.0.0.1&hostname=somehost&port=3000&time=Fri May 18 2012 09:55:17 GMT-0700 (PDT)
 
-To flip the monitor back into an enabled state, send a `POST` request to `http://localhost:3000/enable`.
+To flip the monitor back into an enabled state, send a `POST` request to `http://localhost:3000/ecv/enable`.
 
